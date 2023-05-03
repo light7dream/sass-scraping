@@ -10,16 +10,26 @@ import undetected_chromedriver as uc
 import pandas as pd
 import time
 from webdriver_manager.chrome import ChromeDriverManager
-
-commissions_0 = []
-commissions_1 = []
-categories = []
-titles = []
+import pymongo
 
 driver = uc.Chrome(driver_executable_path=ChromeDriverManager().install())
 driver.maximize_window()
 
 LOGIN_URL = "https://affilisting.com/login"
+
+
+# Connect to the MongoDB server
+client = pymongo.MongoClient("mongodb://localhost:27017/")
+
+# Select the database
+db = client["mydatabase"]
+
+# Check if the collection exists
+if 'collection' in db.list_collection_names():
+    collection = db['collection']
+    collection.drop()
+
+collection = db.create_collection('collection')
 
 def log_in():
     driver.get(LOGIN_URL)
@@ -48,6 +58,7 @@ def save_into_excelfile():
 
 
 def get_data():
+
     try:
         tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
         for i in range(len(tr_elements)):
@@ -61,12 +72,13 @@ def get_data():
                 text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerHTML')
                 rounds.append(text)
 
-            titles.append(td_elements[0].find_elements(By.TAG_NAME, 'div')[0].get_attribute('innerHTML'))
-            categories.append(rounds)
-            commissions_0.append(td_elements[1].get_attribute('innerHTML'))
-            commissions_1.append(td_elements[2].get_attribute('innerHTML'))
+            title = td_elements[0].find_elements(By.TAG_NAME, 'div')[0].get_attribute('innerHTML')
+            categories = rounds
+            commission_0 = td_elements[1].get_attribute('innerHTML')
+            commission_1 = td_elements[2].get_attribute('innerHTML')
 
-            save_into_excelfile()
+            data = {"title": title, "categories": categories, "commission_0": commission_0, "commission_1": commission_1}
+            collection.insert_one(data)
 
     except:
         print("error")
