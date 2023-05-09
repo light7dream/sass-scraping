@@ -7,18 +7,21 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver import ActionChains
 from selenium.webdriver.support import expected_conditions as EC
 import undetected_chromedriver as uc
+import random
 import pandas as pd
 import time
+from random import randrange
 from webdriver_manager.chrome import ChromeDriverManager
 import pymongo
+import json
 
 driver = uc.Chrome(driver_executable_path=ChromeDriverManager().install())
 driver.maximize_window()
 
 LOGIN_URL = "https://affilisting.com/login"
 
-categories = []
-program_datas = []
+categories_file = open('category.txt', 'w')
+programs_file = open('programs.txt', 'w')
 
 # Connect to the MongoDB server
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -45,26 +48,26 @@ def log_in():
     time.sleep(10)
 
 
-def save_into_excelfile():
-    df = pd.DataFrame({'Title': titles, 'categories': categories, 'commissions0': commissions_0, 'commissions1': commissions_1,})  # Create a DF with the lists
+def get_categories():
+    #get the categories
+    btn = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[1]/div/div/div[1]/h3/button')
+    btn.click()
+    time.sleep(5)
 
-    with pd.ExcelWriter('result.xlsx') as writer:
-        df.to_excel(writer, sheet_name='Sheet1')
+    btn = driver.find_element(By.XPATH, '//*[@id="filter-section-0"]/div/div/div[1]/button')
+    btn.click()
+    time.sleep(5)
+    lists = driver.find_element(By.XPATH, '//*[@id="options"]').find_elements(By.TAG_NAME, 'li')
+    for i in range(len(lists)):
+        element = lists[i]
+        text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerHTML')
+        categories_file.write(text + '\n')
 
+    categories_file.close()
+    print("categories scraping success")
 
-def get_data():
-
+def get_programdata():
     try:
-        #get the categories
-        btn = driver.find_element(By.XPATH, '//*[@id="filter-section-0"]/div/div/div[1]/button')
-        btn.click()
-        time.sleep(10)
-        lists = driver.find_element(By.XPATH, '//*[@id="options"]').find_elements(By.TAG_NAME, 'li')
-        for i in range(len(lists)):
-            element = lists[i]
-            text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerHTML')
-            categories.append(text)
-
         #get the programs
         tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
         for i in range(len(tr_elements)):
@@ -83,7 +86,8 @@ def get_data():
             commission_1 = td_elements[2].get_attribute('innerHTML')
 
             data = {"title": title, "categories": rounds, "commission_0": commission_0, "commission_1": commission_1}
-            program_datas.append(data)
+            json.dump(data, programs_file)
+            programs_file.write('\n')
             
     except:
         print("error")
@@ -108,27 +112,50 @@ def save_into_database():
     program_collection = db.create_collection('programs')
     category_collection = db.create_collection('categories')
 
-    for i in range(len(categories)):
-        category = categories[i]
+    # Open a file in read mode
+    cate_file = open('category.txt', 'r')
+
+    # Read the lines from the file
+    for category in cate_file:
         color = get_random_rgbcolor()
         data = {"category": category, "color": color}
         category_collection.insert_one(data)
 
-    program_collection.insert_many(program_datas)
+    # Close the file
+    cate_file.close()
+
+    # Open a file in read mode
+    pro_file = open('programs.txt', 'r')
+
+    # Read the lines from the file
+    for program in pro_file:
+        program_str = json.loads(program)
+        program_collection.insert_one(program_str)
+
+    # Close the file
+    pro_file.close()
 
 def scrape_site():
     time.sleep(10)
-    get_data()
+    get_categories()
+    get_programdata()
+
     next_btn = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[2]/div[2]/div[1]/div[3]/div/div/div/nav/div[2]/button')
     while next_btn:
         next_btn.click()
         time.sleep(10)
-        get_data()
+        get_programdata()
 
         try:
             next_btn = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[2]/div[2]/div[1]/div[3]/div/div/div/nav/div[2]/button[2]')
         except:
             next_btn = None
+
+    programs_file.close()
+
+    print("Scraping Success")
+    save_into_database()
+    print("Saved Success")
 
 def main():
     log_in()
