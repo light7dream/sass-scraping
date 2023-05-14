@@ -3,7 +3,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from undetected_chromedriver import Chrome, ChromeOptions
 import random
-import pandas as pd
 import time
 from random import randrange
 from webdriver_manager.chrome import ChromeDriverManager
