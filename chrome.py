@@ -1,12 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver import ActionChains
-from selenium.webdriver.support import expected_conditions as EC
-import undetected_chromedriver as uc
+from undetected_chromedriver import Chrome, ChromeOptions
 import random
 import pandas as pd
 import time
@@ -15,13 +10,39 @@ from webdriver_manager.chrome import ChromeDriverManager
 import pymongo
 import json
 
-driver = uc.Chrome(driver_executable_path=ChromeDriverManager().install())
+options = ChromeOptions()
+options.add_experimental_option("excludeSwitches", ["enable-logging"])
+options.add_argument('--headless')
+options.add_argument('--disable-gpu')
+options.add_argument('--disable-extensions')
+options.add_argument('--disable-features=NetworkService')
+options.add_argument('--disable-dev-shm-usage')
+options.add_argument('--no-sandbox')
+options.add_argument('--blink-settings=imagesEnabled=false')
+
+# # set network conditions to disable css and images
+# network_conditions = {
+#     'offline': False,
+#     'latency': 5,  # additional latency (ms)
+#     'download_throughput': 500 * 1024,  # download speed (bytes/s)
+#     'upload_throughput': 500 * 1024  # upload speed (bytes/s)
+# }
+# options.set_network_conditions(offline=False, **network_conditions)
+
+driver = Chrome(options=options, executable_path=ChromeDriverManager().install())
 driver.maximize_window()
 
 LOGIN_URL = "https://affilisting.com/login"
+modal_xpath = '//*[@id="app"]/div/div[2]/main/div/div[2]/div[2]/div/div/div/div[2]/div/div[3]/dl'
+close_xpath = '//*[@id="app"]/div/div[2]/main/div/div[2]/div[2]/div/div/div/div[1]/button'
+dropdown_xpath = '//*[@id="filter-section-0"]/div/div/div[1]/button'
+ul_xpath = '//*[@id="options"]'
 
-categories_file = open('category.txt', 'w')
-programs_file = open('programs.txt', 'w')
+tags_file = open('tags.txt', 'w')
+programs_file = open('products.txt', 'w')
+platforms_file = open('platforms.txt', 'w')
+geolocations_file = open('geolocations.txt', 'w', encoding='utf-8')
+
 
 # Connect to the MongoDB server
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -45,52 +66,139 @@ def log_in():
     submit_btn = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/form/div[4]/button')
     submit_btn.click()
 
-    time.sleep(10)
+    time.sleep(20)
 
 
-def get_categories():
-    #get the categories
-    btn = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[1]/div/div/div[1]/h3/button')
+def get_tags():
+    #get the tags
+    dropdown1_xpath = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[1]/div/div/div[1]/h3/button'
+    
+    btn = driver.find_element(By.XPATH, dropdown1_xpath)
+    btn.click()
+    time.sleep(5)
+
+
+    btn = driver.find_element(By.XPATH, dropdown_xpath)
+    btn.click()
+    time.sleep(5)
+    lists = driver.find_element(By.XPATH, ul_xpath).find_elements(By.TAG_NAME, 'li')
+    for i in range(len(lists)):
+        element = lists[i]
+        text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerText')
+        tags_file.write(text + '\n')
+
+    tags_file.close()
+
+    btn.click()
+    btn = driver.find_element(By.XPATH, dropdown1_xpath)
+    btn.click()
+    time.sleep(5)
+    print("tags scraping success")
+
+def get_platforms():
+    #get the platforms
+    dropdown1_xpath = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[1]/div/div/div[2]/h3/button'
+    
+    btn = driver.find_element(By.XPATH, dropdown1_xpath)
     btn.click()
     time.sleep(5)
 
     btn = driver.find_element(By.XPATH, '//*[@id="filter-section-0"]/div/div/div[1]/button')
     btn.click()
     time.sleep(5)
-    lists = driver.find_element(By.XPATH, '//*[@id="options"]').find_elements(By.TAG_NAME, 'li')
+    lists = driver.find_element(By.XPATH, ul_xpath).find_elements(By.TAG_NAME, 'li')
     for i in range(len(lists)):
         element = lists[i]
-        text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerHTML')
-        categories_file.write(text + '\n')
+        text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerText')
+        platforms_file.write(text + '\n')
 
-    categories_file.close()
-    print("categories scraping success")
+    platforms_file.close()
+
+    btn.click()
+    btn = driver.find_element(By.XPATH, dropdown1_xpath)
+    btn.click()
+    time.sleep(5)
+
+    print("platforms scraping success")
+
+def get_geolocations():
+    #get the geolocations
+    dropdown1_xpath = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[1]/div/div/div[3]/h3/button'
+    
+    btn = driver.find_element(By.XPATH, dropdown1_xpath)
+    btn.click()
+    time.sleep(5)
+
+    btn = driver.find_element(By.XPATH, dropdown_xpath)
+    btn.click()
+    time.sleep(5)
+    lists = driver.find_element(By.XPATH, ul_xpath).find_elements(By.TAG_NAME, 'li')
+    for i in range(len(lists)):
+        element = lists[i]
+        text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerText')
+        geolocations_file.write(text + '\n')
+
+    geolocations_file.close()
+
+    btn.click()
+    btn = driver.find_element(By.XPATH, dropdown1_xpath)
+    btn.click()
+    time.sleep(5)
+
+    print("geolocations scraping success")
+
+
+def get_elements(element):
+    title = element.find_elements(By.TAG_NAME, 'td')[0].find_elements(By.TAG_NAME, 'div')[0].get_attribute('innerText')
+
+    elements = driver.find_element(By.XPATH, modal_xpath).find_elements(By.TAG_NAME, "dd")
+    affilication_type = elements[0].get_attribute('innerText')
+    affilication_platform = elements[1].get_attribute('innerText')
+    # if(affilication_platform.contains("</a>")):
+    #     affilication_platform = elements[1].find_element(By.TAG_NAME, 'a').get_attribute('innerHTML')
+    product_type = elements[2].get_attribute('innerText')
+    geolocation = elements[3].find_element(By.TAG_NAME, 'div').get_attribute('innerText')
+    # if geolocation.contains("<div>"):
+    #     geolocation = ""
+    commission_0 = elements[4].get_attribute('innerText')
+    commission_1 = elements[5].get_attribute('innerText')
+
+    rounds = []
+    round_elements = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div[2]/div[2]/div/div/div/div[2]/div/div[4]/div/ul').find_elements(By.TAG_NAME, 'span')
+    for i in range(len(round_elements)):
+        round_element = round_elements[i].get_attribute('innerText')
+        rounds.append(round_element)
+
+    data = {"title": title, "type": affilication_type, "platform": affilication_platform, "product_type": product_type, "geolocation": geolocation, "commission_0": commission_0, "commission_1": commission_1, "tags": rounds}
+    print(data)
+    json.dump(data, programs_file)
+    programs_file.write('\n')
 
 def get_programdata():
-    try:
-        #get the programs
-        tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
-        for i in range(len(tr_elements)):
-            tr_element = tr_elements[i]
-            td_elements = tr_element.find_elements(By.TAG_NAME, 'td')
-            round_elements = td_elements[0].find_elements(By.CLASS_NAME, "space-x-1")[0].find_elements(By.TAG_NAME, 'div')
 
-            rounds = []
-            for i in range(len(round_elements)):
-                element = round_elements[i]
-                text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerHTML')
-                rounds.append(text)
+    tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
+    for i in range(len(tr_elements)):
+        tr_element = tr_elements[i]
+        tr_element.click()
 
-            title = td_elements[0].find_elements(By.TAG_NAME, 'div')[0].get_attribute('innerHTML')
-            commission_0 = td_elements[1].get_attribute('innerHTML')
-            commission_1 = td_elements[2].get_attribute('innerHTML')
+        #get elements from modal
+        get_elements(tr_element)
 
-            data = {"title": title, "categories": rounds, "commission_0": commission_0, "commission_1": commission_1}
-            json.dump(data, programs_file)
-            programs_file.write('\n')
+        driver.find_element(By.XPATH, close_xpath).click()
+    # try:
+    #     #get the programs
+    #     tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
+    #     for i in range(len(tr_elements)):
+    #         tr_element = tr_elements[i]
+    #         tr_element.click()
+
+    #         #get elements from modal
+    #         get_elements(tr_element)
+
+    #         driver.find_element(By.XPATH, close_xpath).click()
             
-    except:
-        print("error")
+    # except:
+    #     print("error")
     
 def get_random_rgbcolor():
     r = random.randint(100,255)
@@ -102,32 +210,64 @@ def get_random_rgbcolor():
 def save_into_database():
     # Check if the collection exists
     if 'programs' in db.list_collection_names():
-        program_collection = db['programs']
+        program_collection = db['products']
         program_collection.drop()
 
-    if 'categories' in db.list_collection_names():
-        category_collection = db['categories']
-        category_collection.drop()
+    if 'tags' in db.list_collection_names():
+        tag_collection = db['tags']
+        tag_collection.drop()
 
-    program_collection = db.create_collection('programs')
-    category_collection = db.create_collection('categories')
+    if 'platforms' in db.list_collection_names():
+        platform_collection = db['platforms']
+        platform_collection.drop()
+
+    if 'geolocations' in db.list_collection_names():
+        geolocation_collection = db['geolocations']
+        geolocation_collection.drop()
+
+    program_collection = db.create_collection('products')
+    tag_collection = db.create_collection('tags')
+    platform_collection = db.create_collection('platforms')
+    geolocation_collection = db.create_collection('geolocations')
 
     # Open a file in read mode
-    cate_file = open('category.txt', 'r')
+    tag_file = open('tags.txt', 'r')
 
-    # Read the lines from the file
-    for category in cate_file:
+    # Read the lines from the tags file
+    for category in tag_file:
         color = get_random_rgbcolor()
         data = {"category": category, "color": color}
-        category_collection.insert_one(data)
+        tag_collection.insert_one(data)
 
     # Close the file
-    cate_file.close()
+    tag_file.close()
 
     # Open a file in read mode
-    pro_file = open('programs.txt', 'r')
+    platform_file = open('platforms.txt', 'r')
 
-    # Read the lines from the file
+    # Read the lines from the platform file
+    for platform in platform_file:
+        data = {"platform" : platform}
+        platform_collection.insert_one(data)
+
+    # Close the file
+    platform_file.close()
+
+    # Open a file in read mode
+    geolocation_file = open('geolocations.txt', 'r')
+
+    # Read the lines from the geolocation file
+    for geolocation in geolocation_file:
+        data = {"geolocation" : geolocation}
+        geolocation_collection.insert_one(data)
+
+    # Close the file
+    geolocation_file.close()
+
+    # Open a file in read mode
+    pro_file = open('products.txt', 'r')
+
+    # Read the lines from the products file
     for program in pro_file:
         program_str = json.loads(program)
         program_collection.insert_one(program_str)
@@ -137,11 +277,17 @@ def save_into_database():
 
 def scrape_site():
     time.sleep(10)
-    get_categories()
-    get_programdata()
+    get_tags()
+    get_platforms()
+    get_geolocations()
 
+    get_progarmdata()
+
+    page_num = 0
     next_btn = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[2]/div[2]/div[1]/div[3]/div/div/div/nav/div[2]/button')
     while next_btn:
+        page_num += 1
+        print(page_num)
         next_btn.click()
         time.sleep(10)
         get_programdata()
