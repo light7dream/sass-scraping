@@ -2,7 +2,10 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from undetected_chromedriver import Chrome, ChromeOptions
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import random
+import pandas as pd
 import time
 from random import randrange
 from webdriver_manager.chrome import ChromeDriverManager
@@ -11,7 +14,7 @@ import json
 
 options = ChromeOptions()
 options.add_experimental_option("excludeSwitches", ["enable-logging"])
-options.add_argument('--headless')
+# options.add_argument('--headless')
 options.add_argument('--disable-gpu')
 options.add_argument('--disable-extensions')
 options.add_argument('--disable-features=NetworkService')
@@ -73,9 +76,12 @@ def get_tags():
     dropdown1_xpath = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[1]/div/div/div[1]/h3/button'
     
     btn = driver.find_element(By.XPATH, dropdown1_xpath)
+    # # Wait for the element to become interactable
+    # wait = WebDriverWait(driver, 10)
+    # btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown1_xpath)))
+
     btn.click()
     time.sleep(5)
-
 
     btn = driver.find_element(By.XPATH, dropdown_xpath)
     btn.click()
@@ -169,7 +175,6 @@ def get_elements(element):
         rounds.append(round_element)
 
     data = {"title": title, "type": affilication_type, "platform": affilication_platform, "product_type": product_type, "geolocation": geolocation, "commission_0": commission_0, "commission_1": commission_1, "tags": rounds}
-    print(data)
     json.dump(data, programs_file)
     programs_file.write('\n')
 
@@ -208,7 +213,7 @@ def get_random_rgbcolor():
 
 def save_into_database():
     # Check if the collection exists
-    if 'programs' in db.list_collection_names():
+    if 'products' in db.list_collection_names():
         program_collection = db['products']
         program_collection.drop()
 
@@ -253,7 +258,7 @@ def save_into_database():
     platform_file.close()
 
     # Open a file in read mode
-    geolocation_file = open('geolocations.txt', 'r')
+    geolocation_file = open('geolocations.txt', 'r',  encoding='utf-8')
 
     # Read the lines from the geolocation file
     for geolocation in geolocation_file:
@@ -279,8 +284,7 @@ def scrape_site():
     get_tags()
     get_platforms()
     get_geolocations()
-
-    get_progarmdata()
+    get_programdata()
 
     page_num = 0
     next_btn = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[2]/div[2]/div[1]/div[3]/div/div/div/nav/div[2]/button')
