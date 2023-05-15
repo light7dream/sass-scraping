@@ -11,6 +11,7 @@ from random import randrange
 from webdriver_manager.chrome import ChromeDriverManager
 import pymongo
 import json
+import re
 
 options = ChromeOptions()
 options.add_experimental_option("excludeSwitches", ["enable-logging"])
@@ -173,8 +174,20 @@ def get_elements(element):
     for i in range(len(round_elements)):
         round_element = round_elements[i].get_attribute('innerText')
         rounds.append(round_element)
-
+    
     data = {"title": title, "type": affilication_type, "platform": affilication_platform, "product_type": product_type, "geolocation": geolocation, "commission_0": commission_0, "commission_1": commission_1, "tags": rounds}
+    
+    numbers = re.findall(r'\d+\.\d+|\d+', commission_0)
+    if(len(numbers) > 0):
+        number = float(numbers[0])
+        data['num_commission_0'] = number
+
+    numbers = re.findall(r'\d+\.\d+|\d+', commission_1)
+    if(len(numbers) > 0):
+        number = float(numbers[0])
+        data['num_commission_1'] = number
+
+    print(data)
     json.dump(data, programs_file)
     programs_file.write('\n')
 
@@ -281,9 +294,9 @@ def save_into_database():
 
 def scrape_site():
     time.sleep(10)
-    get_tags()
-    get_platforms()
-    get_geolocations()
+    # get_tags()
+    # get_platforms()
+    # get_geolocations()
     get_programdata()
 
     page_num = 0
