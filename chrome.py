@@ -187,7 +187,7 @@ def get_elements(element):
         number = float(numbers[0])
         data['num_commission_1'] = number
 
-    print(data)
+    # print(data)
     json.dump(data, programs_file)
     programs_file.write('\n')
 
@@ -294,9 +294,9 @@ def save_into_database():
 
 def scrape_site():
     time.sleep(10)
-    # get_tags()
-    # get_platforms()
-    # get_geolocations()
+    get_tags()
+    get_platforms()
+    get_geolocations()
     get_programdata()
 
     page_num = 0
