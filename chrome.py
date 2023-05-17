@@ -7,7 +7,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 import random
-import pandas as pd
 import time
 from random import randrange
 from webdriver_manager.chrome import ChromeDriverManager
@@ -217,29 +216,29 @@ def get_elements(element):
 
 def get_programdata():
 
-    tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
-    for i in range(len(tr_elements)):
-        tr_element = tr_elements[i]
-        tr_element.click()
+    # tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
+    # for i in range(len(tr_elements)):
+    #     tr_element = tr_elements[i]
+    #     tr_element.click()
 
-        #get elements from modal
-        get_elements(tr_element)
+    #     #get elements from modal
+    #     get_elements(tr_element)
 
-        driver.find_element(By.XPATH, close_xpath).click()
-    # try:
-    #     #get the programs
-    #     tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
-    #     for i in range(len(tr_elements)):
-    #         tr_element = tr_elements[i]
-    #         tr_element.click()
+    #     driver.find_element(By.XPATH, close_xpath).click()
+    try:
+        #get the programs
+        tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
+        for i in range(len(tr_elements)):
+            tr_element = tr_elements[i]
+            tr_element.click()
 
-    #         #get elements from modal
-    #         get_elements(tr_element)
+            #get elements from modal
+            get_elements(tr_element)
 
-    #         driver.find_element(By.XPATH, close_xpath).click()
+            driver.find_element(By.XPATH, close_xpath).click()
             
-    # except:
-    #     print("error")
+    except:
+        print("error")
     
 def get_random_rgbcolor():
     r = random.randint(100,255)
