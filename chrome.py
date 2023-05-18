@@ -370,20 +370,24 @@ def get_links():
 
     # Read the lines from the platform file
     for product_link in links_file:
+
         try:
-            # Set a timeout for the page to load
-            driver.set_page_load_timeout(5)
+            try:
+                # Set a timeout for the page to load
+                driver.set_page_load_timeout(15)
 
-            # Try to load the page
-            driver.get(product_link)
+                # Try to load the page
+                driver.get(product_link)
 
+            except:
+                # If the page takes too long to load, print an error message and continue with the next step
+                print("TimeoutException: Page took too long to load. Skipping this step.")
+
+            # driver.execute_script("window.open(arguments[0], '_blank');", product_link)
+            product_link = driver.current_url
+            productlinks_new_file.write(product_link + '\n')
         except:
-            # If the page takes too long to load, print an error message and continue with the next step
-            print("TimeoutException: Page took too long to load. Skipping this step.")
-
-        # driver.execute_script("window.open(arguments[0], '_blank');", product_link)
-        product_link = driver.current_url
-        productlinks_new_file.write(product_link + '\n')
+            print("get_url_error")
 
     links_file.close()
     productlinks_new_file.close()
