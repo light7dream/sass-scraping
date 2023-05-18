@@ -88,10 +88,19 @@ def save_into_database():
     # Close the file
     # pro_file.close()
 
-
+def setStatus(status):
+    # Find the first document in the collection and update it
+    collection = db["schedules"]
+    query = {}
+    new_values = { "$set": { "running": status } }
+    updated_doc = collection.find_one_and_update(query, new_values)
+    # Print the updated document
+    print(updated_doc)
+    
 def main():
     save_into_database()
     print("Saved Success")
+    setStatus(False)
     
 if __name__ == '__main__':
     main()
