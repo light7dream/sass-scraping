@@ -15,6 +15,11 @@ import json
 import re
 
 options = ChromeOptions()
+prefs = {
+    "profile.managed_default_content_settings.images": 2,
+    "profile.managed_default_content_settings.stylesheets": 2
+}
+options.add_experimental_option("prefs", prefs)
 options.add_experimental_option("excludeSwitches", ["enable-logging"])
 # options.add_argument('--headless')
 options.add_argument('--disable-gpu')
@@ -23,6 +28,8 @@ options.add_argument('--disable-features=NetworkService')
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--no-sandbox')
 options.add_argument('--blink-settings=imagesEnabled=false')
+options.add_argument('--disable-features=CSSStylusUsage')
+options.add_argument("--pageLoadStrategy=none")
 
 # # set network conditions to disable css and images
 # network_conditions = {
@@ -34,6 +41,19 @@ options.add_argument('--blink-settings=imagesEnabled=false')
 # options.set_network_conditions(offline=False, **network_conditions)
 
 driver = Chrome(options=options, executable_path=ChromeDriverManager().install())
+wait = WebDriverWait(driver, 10)
+# Enable Chrome DevTools
+driver.execute_cdp_cmd('Page.enable', {})
+
+# Disable CSS
+css_remove_script = '''
+    var styleSheets = document.styleSheets;
+    for (var i = 0; i < styleSheets.length; i++) {
+        styleSheets[i].disabled = true;
+    }
+'''
+driver.execute_script(css_remove_script)
+
 driver.maximize_window()
 
 LOGIN_URL = "https://affilisting.com/login"
@@ -46,7 +66,7 @@ tags_file = open('tags.txt', 'w')
 programs_file = open('products.txt', 'w')
 platforms_file = open('platforms.txt', 'w')
 geolocations_file = open('geolocations.txt', 'w', encoding='utf-8')
-
+productlinks_file = open('productlinks_old.txt', 'w')
 
 # Connect to the MongoDB server
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -56,12 +76,11 @@ db = client["mydatabase"]
 
 def log_in():
     driver.get(LOGIN_URL)
-    time.sleep(10)
-
+    
     email = "waynapayer@gmail.com"
     password = "Malitr$$324olr"
 
-    email_field = driver.find_element(By.ID, 'email')
+    email_field = wait.until(EC.presence_of_element_located((By.ID, 'email')))
     email_field.send_keys(email)
 
     password_field = driver.find_element(By.ID, 'password')
@@ -158,28 +177,30 @@ def get_geolocations():
 def get_elements(element):
     title = element.find_elements(By.TAG_NAME, 'td')[0].find_elements(By.TAG_NAME, 'div')[0].get_attribute('innerText')
     
-    product_link = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div[2]/div[2]/div/div/div/div[2]/div/div[2]/a')
-    # product_link = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div[2]/div[2]/div/div/div/div[2]/div/div[2]/a').get_attribute('href')
+    # product_link = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div[2]/div[2]/div/div/div/div[2]/div/div[2]/a')
+    
+    # # open the URL in a new tab
+    # actions = ActionChains(driver)
+    # actions.key_down(Keys.CONTROL).click(product_link).key_up(Keys.CONTROL).perform()
+    
+    # # switch to the new tab
+    
+    # try:
+    #     driver.set_page_load_timeout(10)
+    #     driver.switch_to.window(driver.window_handles[-1])
+    # except:
+    #     print("Time Out")
+
+    # # driver.switch_to.window(driver.window_handles[-1])
+
+    # # get the URL of the new tab
+    # product_link = driver.current_url
     # print(product_link)
+    # # close the new tab
+    # driver.close()
 
-    # open the URL in a new tab
-    actions = ActionChains(driver)
-    actions.key_down(Keys.CONTROL).click(product_link).key_up(Keys.CONTROL).perform()
-
-    # switch to the new tab
-    driver.switch_to.window(driver.window_handles[-1])
-    time.sleep(2)
-    # get the URL of the new tab
-    product_link = driver.current_url
-
-    # do something with the new URL
-    # print(product_link)
-
-    # close the new tab
-    driver.close()
-
-    # switch back to the original tab
-    driver.switch_to.window(driver.window_handles[0])
+    # #switch back to the original tab
+    # driver.switch_to.window(driver.window_handles[0])
 
     elements = driver.find_element(By.XPATH, modal_xpath).find_elements(By.TAG_NAME, "dd")
     affilication_type = elements[0].get_attribute('innerText')
@@ -199,7 +220,10 @@ def get_elements(element):
         round_element = round_elements[i].get_attribute('innerText')
         rounds.append(round_element)
     
-    data = {"title": title, "type": affilication_type, "platform": affilication_platform, "product_type": product_type, "product_link": product_link, "geolocation": geolocation, "commission_0": commission_0, "commission_1": commission_1, "tags": rounds}
+    product_link = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div[2]/div[2]/div/div/div/div[2]/div/div[2]/a').get_attribute('href')
+    productlinks_file.write(product_link + '\n')
+
+    data = {"title": title, "type": affilication_type, "platform": affilication_platform, "product_type": product_type, "geolocation": geolocation, "commission_0": commission_0, "commission_1": commission_1, "tags": rounds}
     
     numbers = re.findall(r'\d+\.\d+|\d+', commission_0)
     if(len(numbers) > 0):
@@ -215,30 +239,18 @@ def get_elements(element):
     programs_file.write('\n')
 
 def get_programdata():
+    tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
+    for i in range(len(tr_elements)):
+        tr_element = tr_elements[i]
+        tr_element.click()
 
-    # tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
-    # for i in range(len(tr_elements)):
-    #     tr_element = tr_elements[i]
-    #     tr_element.click()
-
-    #     #get elements from modal
-    #     get_elements(tr_element)
-
-    #     driver.find_element(By.XPATH, close_xpath).click()
-    try:
-        #get the programs
-        tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
-        for i in range(len(tr_elements)):
-            tr_element = tr_elements[i]
-            tr_element.click()
-
+        try:
             #get elements from modal
             get_elements(tr_element)
-
             driver.find_element(By.XPATH, close_xpath).click()
-            
-    except:
-        print("error")
+        except:
+            print("each element error")
+        
     
 def get_random_rgbcolor():
     r = random.randint(100,255)
@@ -313,22 +325,24 @@ def save_into_database():
     # Close the file
     geolocation_file.close()
 
-    # Open a file in read mode
-    pro_file = open('products.txt', 'r')
-
-    # Read the lines from the products file
-    for program in pro_file:
-        program_str = json.loads(program)
-        program_collection.insert_one(program_str)
-
-    # Close the file
-    pro_file.close()
-
+    with open('products.txt', 'r') as file1, open('productlinks_new.txt', 'r') as file2:
+        for line1, line2 in zip(file1, file2):
+            # Do something with line1 and line2
+            program_data = json.loads(line1.strip())
+            product_link = line2.strip()
+            program_data['product_link'] = product_link
+            print(program_data)
+            program_collection.insert_one(program_data)
+            
+    file1.close()
+    file2.close()
+    print("Saving in database success")
+            
 def scrape_site():
     time.sleep(10)
-    get_tags()
-    get_platforms()
-    get_geolocations()
+    # get_tags()
+    # get_platforms()
+    # get_geolocations()
     get_programdata()
 
     page_num = 0
@@ -337,7 +351,7 @@ def scrape_site():
         page_num += 1
         print(page_num)
         next_btn.click()
-        time.sleep(10)
+        time.sleep(5)
         get_programdata()
 
         try:
@@ -346,17 +360,41 @@ def scrape_site():
             next_btn = None
 
     programs_file.close()
-
+    productlinks_file.close()
+    
     print("Scraping Success")
-    save_into_database()
-    print("Saved Success")
 
+def get_links():
+    links_file = open('productlinks_old.txt', 'r')
+    productlinks_new_file = open("productlinks_new.txt", 'w')
 
+    # Read the lines from the platform file
+    for product_link in links_file:
+        try:
+            # Set a timeout for the page to load
+            driver.set_page_load_timeout(5)
+
+            # Try to load the page
+            driver.get(product_link)
+
+        except:
+            # If the page takes too long to load, print an error message and continue with the next step
+            print("TimeoutException: Page took too long to load. Skipping this step.")
+
+        # driver.execute_script("window.open(arguments[0], '_blank');", product_link)
+        product_link = driver.current_url
+        productlinks_new_file.write(product_link + '\n')
+
+    links_file.close()
+    productlinks_new_file.close()
+    print("Getting links success")
 
 def main():
     setStatus(True)
     log_in()
     scrape_site()
+    get_links()
+    save_into_database()
     setStatus(False)
 
 if __name__ == '__main__':
