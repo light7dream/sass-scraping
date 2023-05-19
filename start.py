@@ -13,13 +13,14 @@ from webdriver_manager.chrome import ChromeDriverManager
 import pymongo
 import json
 import re
+import subprocess
 
 options = ChromeOptions()
-prefs = {
-    "profile.managed_default_content_settings.images": 2,
-    "profile.managed_default_content_settings.stylesheets": 2
-}
-options.add_experimental_option("prefs", prefs)
+# prefs = {
+#     "profile.managed_default_content_settings.images": 2,
+#     "profile.managed_default_content_settings.stylesheets": 2
+# }
+# options.add_experimental_option("prefs", prefs)
 options.add_experimental_option("excludeSwitches", ["enable-logging"])
 # options.add_argument('--headless')
 options.add_argument('--disable-gpu')
@@ -27,9 +28,10 @@ options.add_argument('--disable-extensions')
 options.add_argument('--disable-features=NetworkService')
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--no-sandbox')
-options.add_argument('--blink-settings=imagesEnabled=false')
-options.add_argument('--disable-features=CSSStylusUsage')
-options.add_argument("--pageLoadStrategy=none")
+# options.add_argument('--blink-settings=imagesEnabled=false')
+# options.add_argument('--disable-features=CSSStylusUsage')
+options.add_argument("--disable-blink-features=AutomationControlled")
+# options.add_argument("--pageLoadStrategy=none")
 
 # # set network conditions to disable css and images
 # network_conditions = {
@@ -41,7 +43,7 @@ options.add_argument("--pageLoadStrategy=none")
 # options.set_network_conditions(offline=False, **network_conditions)
 
 driver = Chrome(options=options, executable_path=ChromeDriverManager().install())
-wait = WebDriverWait(driver, 10)
+wait = WebDriverWait(driver, 500)
 # Enable Chrome DevTools
 driver.execute_cdp_cmd('Page.enable', {})
 
@@ -60,6 +62,7 @@ LOGIN_URL = "https://affilisting.com/login"
 modal_xpath = '//*[@id="app"]/div/div[2]/main/div/div[2]/div[2]/div/div/div/div[2]/div/div[3]/dl'
 close_xpath = '//*[@id="app"]/div/div[2]/main/div/div[2]/div[2]/div/div/div/div[1]/button'
 dropdown_xpath = '//*[@id="filter-section-0"]/div/div/div[1]/button'
+next_btn_xpath = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[2]/div[2]/div[1]/div[3]/div/div/div/nav/div[2]/button'
 ul_xpath = '//*[@id="options"]'
 
 tags_file = open('tags.txt', 'w')
@@ -88,90 +91,124 @@ def log_in():
 
     submit_btn = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/form/div[4]/button')
     submit_btn.click()
-
-    time.sleep(20)
-
+    # time.sleep(20)
 
 def get_tags():
-    #get the tags
-    dropdown1_xpath = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[1]/div/div/div[1]/h3/button'
+    try:
+        #get the tags
+        dropdown1_xpath = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[1]/div/div/div[1]/h3/button'
+        btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown1_xpath)))
+        driver.execute_script("arguments[0].scrollIntoView();", btn)
+        btn.click()
+       
+        btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown_xpath)))
+        btn.click()
+        # btn = driver.find_element(By.XPATH, dropdown_xpath)
     
-    btn = driver.find_element(By.XPATH, dropdown1_xpath)
-    # # Wait for the element to become interactable
-    # wait = WebDriverWait(driver, 10)
-    # btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown1_xpath)))
+        lists = wait.until(EC.presence_of_element_located((By.XPATH, ul_xpath)))
+        lists = lists.find_elements(By.TAG_NAME, 'li')
+        for i in range(len(lists)):
+            element = lists[i]
+            text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerText')
+            tags_file.write(text + '\n')
 
-    btn.click()
-    time.sleep(5)
+        tags_file.close()
 
-    btn = driver.find_element(By.XPATH, dropdown_xpath)
-    btn.click()
-    time.sleep(5)
-    lists = driver.find_element(By.XPATH, ul_xpath).find_elements(By.TAG_NAME, 'li')
-    for i in range(len(lists)):
-        element = lists[i]
-        text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerText')
-        tags_file.write(text + '\n')
+        btn.click()
+        btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown1_xpath)))
+        btn.click()
 
-    tags_file.close()
-
-    btn.click()
-    btn = driver.find_element(By.XPATH, dropdown1_xpath)
-    btn.click()
-    time.sleep(5)
-    print("tags scraping success")
+        print("tags scraping success")
+    except:
+        print("get_tags error")
+    
 
 def get_platforms():
-    #get the platforms
-    dropdown1_xpath = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[1]/div/div/div[2]/h3/button'
+    try:
+        #get the platforms
+        dropdown1_xpath = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[1]/div/div/div[2]/h3/button'
+        
+        btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown1_xpath)))
+        # driver.execute_script("arguments[0].scrollIntoView();", btn)
+        btn.click()
+
+        btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown_xpath)))
+        btn.click()
+
+        lists = wait.until(EC.presence_of_element_located((By.XPATH, ul_xpath)))
+        lists = lists.find_elements(By.TAG_NAME, 'li')
+
+        for i in range(len(lists)):
+            element = lists[i]
+            text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerText')
+            platforms_file.write(text + '\n')
+
+        platforms_file.close()
+
+        btn.click()
+        btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown1_xpath)))
+        btn.click()
+
+        print("platforms scraping success")
+    except:
+        print("get_platforms error")
     
-    btn = driver.find_element(By.XPATH, dropdown1_xpath)
-    btn.click()
-    time.sleep(5)
-
-    btn = driver.find_element(By.XPATH, '//*[@id="filter-section-0"]/div/div/div[1]/button')
-    btn.click()
-    time.sleep(5)
-    lists = driver.find_element(By.XPATH, ul_xpath).find_elements(By.TAG_NAME, 'li')
-    for i in range(len(lists)):
-        element = lists[i]
-        text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerText')
-        platforms_file.write(text + '\n')
-
-    platforms_file.close()
-
-    btn.click()
-    btn = driver.find_element(By.XPATH, dropdown1_xpath)
-    btn.click()
-    time.sleep(5)
-
-    print("platforms scraping success")
 
 def get_geolocations():
-    #get the geolocations
-    dropdown1_xpath = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[1]/div/div/div[3]/h3/button'
+    # #get the geolocations
+    # dropdown1_xpath = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[1]/div/div/div[3]/h3/button'
+        
+    # btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown1_xpath)))
+    # btn.click()
+
+    # btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown_xpath)))
+    # btn.click()
+
+    # lists = wait.until(EC.presence_of_element_located((By.XPATH, ul_xpath)))
+    # lists = lists.find_elements(By.TAG_NAME, 'li')
+        
+    # for i in range(len(lists)):
+    #     element = lists[i]
+    #     text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerText')
+    #     geolocations_file.write(text + '\n')
+
+    # geolocations_file.close()
+
+    # btn.click()
+    # btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown1_xpath)))
+    # btn.click()
+
+    # print("geolocations scraping success")
+
+    try:
+        #get the geolocations
+        dropdown1_xpath = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[1]/div/div/div[3]/h3/button'
+        
+        btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown1_xpath)))
+        # driver.execute_script("arguments[0].scrollIntoView();", btn)
+        btn.click()
+
+        btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown_xpath)))
+        btn.click()
+
+        lists = wait.until(EC.presence_of_element_located((By.XPATH, ul_xpath)))
+        lists = lists.find_elements(By.TAG_NAME, 'li')
+        
+        for i in range(len(lists)):
+            element = lists[i]
+            text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerText')
+            geolocations_file.write(text + '\n')
+
+        geolocations_file.close()
+
+        btn.click()
+        btn = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown1_xpath)))
+        btn.click()
+
+        print("geolocations scraping success")
+    except:
+        print("get_geolocations error")
     
-    btn = driver.find_element(By.XPATH, dropdown1_xpath)
-    btn.click()
-    time.sleep(5)
-
-    btn = driver.find_element(By.XPATH, dropdown_xpath)
-    btn.click()
-    time.sleep(5)
-    lists = driver.find_element(By.XPATH, ul_xpath).find_elements(By.TAG_NAME, 'li')
-    for i in range(len(lists)):
-        element = lists[i]
-        text = element.find_element(By.TAG_NAME, 'span').get_attribute('innerText')
-        geolocations_file.write(text + '\n')
-
-    geolocations_file.close()
-
-    btn.click()
-    btn = driver.find_element(By.XPATH, dropdown1_xpath)
-    btn.click()
-    time.sleep(5)
-
-    print("geolocations scraping success")
 
 
 def get_elements(element):
@@ -214,17 +251,21 @@ def get_elements(element):
     programs_file.write('\n')
 
 def get_programdata():
-    tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
-    for i in range(len(tr_elements)):
-        tr_element = tr_elements[i]
-        tr_element.click()
-
-        try:
-            #get elements from modal
-            get_elements(tr_element)
-            driver.find_element(By.XPATH, close_xpath).click()
-        except:
-            print("each element error")
+    try:
+        tbody_element = wait.until(EC.presence_of_element_located((By.TAG_NAME, "tbody")))
+        tr_elements = tbody_element.find_elements(By.TAG_NAME, "tr")
+        for i in range(len(tr_elements)):
+            tr_element = tr_elements[i]
+            
+            try:
+                tr_element.click()
+                #get elements from modal
+                get_elements(tr_element)
+                driver.find_element(By.XPATH, close_xpath).click()
+            except:
+                print("each element error")
+    except:
+        print("get_programdata error")
         
     
 def get_random_rgbcolor():
@@ -244,25 +285,28 @@ def setStatus(status):
     print(updated_doc)
         
 def scrape_site():
-    time.sleep(10)
+
     get_tags()
     get_platforms()
     get_geolocations()
     get_programdata()
 
     page_num = 0
-    next_btn = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[2]/div[2]/div[1]/div[3]/div/div/div/nav/div[2]/button')
+    next_btn = wait.until(EC.element_to_be_clickable((By.XPATH, next_btn_xpath)))
+    
     while next_btn:
         page_num += 1
         print(page_num)
-        next_btn.click()
-        time.sleep(5)
-        get_programdata()
-
         try:
-            next_btn = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[2]/div[2]/div[1]/div[3]/div/div/div/nav/div[2]/button[2]')
+            next_btn.click()
+            get_programdata()
+
+            try:
+                next_btn = driver.find_element(By.XPATH, next_btn_xpath)
+            except:
+                next_btn = None
         except:
-            next_btn = None
+            print("page scraping error")
 
     programs_file.close()
     productlinks_file.close()
@@ -271,9 +315,13 @@ def scrape_site():
 
 
 def main():
-    setStatus(True)
-    log_in()
-    scrape_site()
+    try:
+        setStatus(True)
+        log_in()
+        scrape_site()
+    except:
+        print("Scraping Failure")
+    subprocess.run('node index.js', shell=False)
 
 if __name__ == '__main__':
     main()
