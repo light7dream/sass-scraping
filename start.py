@@ -69,7 +69,7 @@ tags_file = open('tags.txt', 'w')
 programs_file = open('products.txt', 'w')
 platforms_file = open('platforms.txt', 'w')
 geolocations_file = open('geolocations.txt', 'w', encoding='utf-8')
-productlinks_file = open('productlinks_old.txt', 'w')
+productlinks_file = open('productlinks.txt', 'w')
 
 # Connect to the MongoDB server
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -255,6 +255,8 @@ def get_programdata():
         tbody_element = wait.until(EC.presence_of_element_located((By.TAG_NAME, "tbody")))
         tr_elements = tbody_element.find_elements(By.TAG_NAME, "tr")
         for i in range(len(tr_elements)):
+
+            
             tr_element = tr_elements[i]
             
             try:
