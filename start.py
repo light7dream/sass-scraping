@@ -62,7 +62,6 @@ LOGIN_URL = "https://affilisting.com/login"
 modal_xpath = '//*[@id="app"]/div/div[2]/main/div/div[2]/div[2]/div/div/div/div[2]/div/div[3]/dl'
 close_xpath = '//*[@id="app"]/div/div[2]/main/div/div[2]/div[2]/div/div/div/div[1]/button'
 dropdown_xpath = '//*[@id="filter-section-0"]/div/div/div[1]/button'
-next_btn_xpath = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[2]/div[2]/div[1]/div[3]/div/div/div/nav/div[2]/button'
 ul_xpath = '//*[@id="options"]'
 
 tags_file = open('tags.txt', 'w')
@@ -252,11 +251,10 @@ def get_elements(element):
 
 def get_programdata():
     try:
-        tbody_element = wait.until(EC.presence_of_element_located((By.TAG_NAME, "tbody")))
-        tr_elements = tbody_element.find_elements(By.TAG_NAME, "tr")
+        # tbody_element = wait.until(EC.presence_of_element_located((By.TAG_NAME, "tbody")))
+        # tr_elements = tbody_element.find_elements(By.TAG_NAME, "tr")
+        tr_elements = driver.find_element(By.TAG_NAME, "tbody").find_elements(By.TAG_NAME, "tr")
         for i in range(len(tr_elements)):
-
-            
             tr_element = tr_elements[i]
             
             try:
@@ -294,17 +292,20 @@ def scrape_site():
     get_programdata()
 
     page_num = 0
-    next_btn = wait.until(EC.element_to_be_clickable((By.XPATH, next_btn_xpath)))
+    next_btn_path = '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[2]/div[2]/div[1]/div[3]/div/div/div/nav/div[2]/button'
+    next_btn = wait.until(EC.element_to_be_clickable((By.XPATH, next_btn_path)))
     
     while next_btn:
         page_num += 1
         print(page_num)
         try:
             next_btn.click()
+            # wait.until(EC.url_changes(f"https://affilisting.com/list?page={page_num}"))
+            time.sleep(20)
             get_programdata()
 
             try:
-                next_btn = driver.find_element(By.XPATH, next_btn_xpath)
+                next_btn = driver.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/main/div/div/div[2]/div/main/section/div/div[2]/div[2]/div[1]/div[3]/div/div/div/nav/div[2]/button[2]')
             except:
                 next_btn = None
         except:
